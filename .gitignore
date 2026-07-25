@@ -1,0 +1,10 @@
+__pycache__/
+*.pyc
+build/
+dist/
+*.spec.bak
+_dbg_*.py
+_bench*.py
+.venv/
+publish.sh
+tanto_build.log
