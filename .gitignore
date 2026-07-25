@@ -7,5 +7,7 @@ _dbg_*.py
 _bench*.py
 .venv/
 publish.sh
+cleanup.sh
+refix.sh
 tanto_build.log
 .omc/

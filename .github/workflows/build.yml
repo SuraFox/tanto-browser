@@ -6,6 +6,9 @@ on:
     tags: ['v*']
   workflow_dispatch:
 
+permissions:
+  contents: write  # нужно action-gh-release для создания релиза
+
 jobs:
   build:
     strategy:
