@@ -8,3 +8,4 @@ _bench*.py
 .venv/
 publish.sh
 tanto_build.log
+.omc/
