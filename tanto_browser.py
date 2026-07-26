@@ -446,7 +446,7 @@ class TantoBrowser(QMainWindow):
         self._fs_restore = None
         self.history = History(os.path.join(APP_DIR, "history.db"))
         self.nam = QNetworkAccessManager(self)
-        self._sugg_reply = None
+        self._sugg_seq = 0
         self._sugg_timer = QTimer(self)
         self._sugg_timer.setSingleShot(True)
         self._sugg_timer.setInterval(160)
@@ -796,27 +796,23 @@ class TantoBrowser(QMainWindow):
         host = t.split("/", 1)[0].split(":", 1)[0]
         if "://" in t or (" " not in t and ("." in t or is_private_host(host))):
             return
-        if self._sugg_reply is not None:
-            self._sugg_reply.abort()
-            self._sugg_reply.deleteLater()
-            self._sugg_reply = None
+        # каждый запрос помечаем seq; старые ответы просто игнорируем — без
+        # abort(), который синхронно эмитит finished и роняет обработчик
+        self._sugg_seq += 1
+        seq = self._sugg_seq
         q = QUrl.toPercentEncoding(t).data().decode()
         req = QNetworkRequest(
             QUrl(f"https://ac.duckduckgo.com/ac/?type=list&q={q}"))
         req.setHeader(QNetworkRequest.KnownHeaders.UserAgentHeader, b"tanto")
         reply = self.nam.get(req)
-        self._sugg_reply = reply
-        reply.finished.connect(lambda: self._on_search_suggest(reply, t))
+        reply.finished.connect(
+            lambda r=reply, s=seq: self._on_search_suggest(r, t, s))
 
-    def _on_search_suggest(self, reply, t: str):
-        if reply is not self._sugg_reply:
-            reply.deleteLater()
-            return
-        self._sugg_reply = None
+    def _on_search_suggest(self, reply, t: str, seq: int):
         data = bytes(reply.readAll())
         reply.deleteLater()
-        if t != getattr(self, "_sugg_text", ""):
-            return  # ответ устарел — текст уже другой
+        if seq != self._sugg_seq or t != getattr(self, "_sugg_text", ""):
+            return  # ответ устарел — пришёл новый запрос или сменился текст
         try:
             j = json.loads(data.decode("utf-8", "replace"))
             sugg = j[1] if isinstance(j, list) and len(j) > 1 else []
